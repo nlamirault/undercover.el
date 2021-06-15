@@ -8,6 +8,23 @@
 
 ;; Test suite setup for ERT Runner.
 
+(eval-and-compile
+  (defun undercover-root ()
+    (if load-file-name
+        ;; Cask
+        (file-name-directory
+         (directory-file-name
+          (file-name-directory
+           load-file-name)))
+      ;; Flycheck
+      (file-name-directory
+       (directory-file-name
+        default-directory)))))
+
+(eval-when-compile
+  (add-to-list 'load-path
+               (undercover-root)))
+
 (require 'undercover)
 (require 's)
 
@@ -19,8 +36,11 @@
 
 (defadvice undercover-safe-report (around self-report activate)
   (let ((undercover--files (list (file-truename "undercover.el")))
-        (undercover--send-report t)
-        (undercover--report-file-path "/tmp/undercover-coverage.json"))
+        (undercover--report-format (if (undercover--under-ci-p)
+                                       'coveralls
+                                     'text))
+        (undercover--send-report (undercover--under-ci-p))
+        (undercover--env nil))
     ad-do-it))
 
 (message "Running tests on Emacs %s" emacs-version)
